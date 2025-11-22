@@ -9,6 +9,112 @@ Deep analysis debugging mode for complex issues. This skill activates methodical
 The skill emphasizes treating code you wrote with MORE skepticism than unfamiliar code, as cognitive biases about "how it should work" can blind you to actual implementation errors. Use scientific method to systematically identify root causes rather than applying quick fixes.
 </objective>
 
+<context_scan>
+**Run on every invocation to detect domain-specific debugging expertise:**
+
+```bash
+# What files are we debugging?
+echo "FILE_TYPES:"
+find . -maxdepth 2 -type f 2>/dev/null | grep -E '\.(py|js|jsx|ts|tsx|rs|swift|c|cpp|go|java)$' | head -10
+
+# Check for domain indicators
+[ -f "package.json" ] && echo "DETECTED: JavaScript/Node project"
+[ -f "Cargo.toml" ] && echo "DETECTED: Rust project"
+[ -f "setup.py" ] || [ -f "pyproject.toml" ] && echo "DETECTED: Python project"
+[ -f "*.xcodeproj" ] || [ -f "Package.swift" ] && echo "DETECTED: Swift/macOS project"
+[ -f "go.mod" ] && echo "DETECTED: Go project"
+
+# Scan for available debugging expertise
+echo "DEBUG_EXPERTISE:"
+ls ~/.claude/skills/debug/ 2>/dev/null | head -5
+```
+
+**Present findings before starting investigation.**
+</context_scan>
+
+<domain_expertise>
+**Domain-specific debugging knowledge lives in `~/.claude/skills/debug/`**
+
+Before investigation, determine if domain expertise should be loaded.
+
+<scan_domains>
+```bash
+ls ~/.claude/skills/debug/ 2>/dev/null
+```
+
+This reveals available debugging expertise (e.g., python-games, react-apps, rust-systems, macos-apps).
+
+**If no debug skills found:** Proceed without domain expertise (graceful degradation). The skill works fine with general debugging methodology.
+</scan_domains>
+
+<inference_rules>
+If user's description or codebase contains domain keywords, INFER the domain:
+
+| Keywords/Files | Domain Skill |
+|----------------|--------------|
+| "Python", "game", "pygame", ".py" + game loop | debug/python-games |
+| "React", "component", "hook", ".jsx/.tsx" | debug/react-apps |
+| "Rust", "cargo", ".rs" files | debug/rust-systems |
+| "Swift", "macOS", ".swift" + AppKit/SwiftUI | debug/macos-apps |
+| "iOS", "iPhone", ".swift" + UIKit | debug/iphone-apps |
+| "Unity", ".cs" + Unity imports | debug/unity-games |
+
+If domain inferred, confirm:
+```
+Detected: [domain] issue → debug/[skill-name]
+Load this debugging expertise? (Y / see other options / none)
+```
+</inference_rules>
+
+<no_inference>
+If no domain obvious, present options:
+
+```
+What type of project are you debugging?
+
+Available debugging expertise:
+1. python-games - Python game debugging (Pygame, performance, physics)
+2. react-apps - React debugging (re-renders, hooks, state)
+3. rust-systems - Rust debugging (borrow checker, lifetimes, performance)
+4. macos-apps - macOS Swift debugging (SwiftUI, AppKit, memory)
+[... any others found in debug/]
+
+N. None - proceed with general debugging methodology
+C. Create debugging expertise for this domain
+
+Select:
+```
+</no_inference>
+
+<load_domain>
+When domain selected, READ all references from that skill:
+
+```bash
+cat ~/.claude/skills/debug/[domain]/references/*.md 2>/dev/null
+```
+
+This loads domain-specific debugging knowledge BEFORE investigation:
+- Common issues in this domain
+- Domain-specific debugging tools
+- Error patterns and their meanings
+- Performance profiling approaches
+- Known pitfalls and anti-patterns
+
+Announce: "Loaded [domain] debugging expertise. Investigating with domain-specific context."
+
+**If domain skill not found:** Inform user and offer to proceed with general methodology or create the expertise.
+</load_domain>
+
+<when_to_load>
+Domain expertise should be loaded BEFORE investigation when domain is known.
+
+Domain expertise is NOT needed for:
+- Pure logic bugs (domain-agnostic)
+- Generic algorithm issues
+- When user explicitly says "skip domain context"
+</when_to_load>
+</domain_expertise>
+
 <context>
 This skill activates when standard troubleshooting has failed. The issue requires methodical investigation, not quick fixes. You are entering the mindset of a senior engineer who debugs with scientific rigor.
 
@@ -122,7 +228,11 @@ See [references/verification-patterns.md](references/verification-patterns.md) f
 
 <success_criteria>
 
-Answer these questions:
+Before starting:
+- [ ] Context scan executed to detect domain
+- [ ] Domain expertise loaded if available and relevant
+
+During investigation:
 - [ ] Do you understand WHY the issue occurred?
 - [ ] Have you verified the fix actually works?
 - [ ] Have you tested the original reproduction steps?
